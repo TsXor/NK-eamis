@@ -1,0 +1,5 @@
+requests
+pywebview
+lxml
+beautifulsoup4
+javascript
