@@ -17,9 +17,9 @@ class EamisCatcher(EamisClient):
             result_dic[lesson["no"]] = lesson
         return result_dic
 
-    def prepare_id(self, lesson_plan: dict[int, list[str]]):
-        prepared_map: dict[int, tuple[str, list[int]]] = {}
-        info_map: dict[int, list[LessonData]] = {}
+    def prepare_id(self, lesson_plan: dict[str, list[str]]):
+        prepared_map: dict[str, tuple[str, list[int]]] = {}
+        info_map: dict[str, list[LessonData]] = {}
         for profile_id, lesson_num_list in lesson_plan.items():
             semester_id = self.semester_id(profile_id)
             lesson_data = self.lesson_data(profile_id)
@@ -29,8 +29,8 @@ class EamisCatcher(EamisClient):
             time.sleep(0.5) # 防止触发“不要过快点击”
         return prepared_map, info_map
 
-    def speed_catch(self, prepared_map: dict[int, tuple[str, list[int]]], humanly_interval=0.5):
-        speed_results: list[tuple[int, int, str]] = []
+    def speed_catch(self, prepared_map: dict[str, tuple[str, list[int]]], humanly_interval=0.5):
+        speed_results: list[tuple[str, int, str]] = []
         for lesson_section, (semester_id, lesson_id_list) in prepared_map.items():
             for lesson_id in lesson_id_list:
                 time.sleep(humanly_interval)

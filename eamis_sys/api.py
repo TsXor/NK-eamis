@@ -12,7 +12,7 @@ class EamisJsDataError(Exception): pass
 
 class EamisClient(EamisClientBasics):
     '''
-    注意：连续调用API时需要在中间插入sleep，否则服务端只会回复“不要过快点击”。
+    注意：连续调用某些API时需要在中间插入sleep，否则服务端只会回复“不要过快点击”。
     '''
 
     @classmethod
@@ -41,7 +41,7 @@ class EamisClient(EamisClientBasics):
         resp = self.document('/eams/stdElectCourse.action')
         return resp.text
 
-    def default_page(self, profile_id: int):
+    def default_page(self, profile_id: str):
         '''
         在获取某个选课页的信息之前，你需要访问这个页面，
         否则对任何选课界面的访问都会造成服务端500错误。
@@ -51,7 +51,7 @@ class EamisClient(EamisClientBasics):
         # eamis现在不允许学生同时打开多个选课页，我盲猜这是通过在这个页面上设置限制得到的。
         resp = self.document(
             '/eams/stdElectCourse!defaultPage.action',
-            params={'electionProfile.id': str(profile_id)}
+            params={'electionProfile.id': profile_id}
         )
         return resp.text
 
@@ -63,23 +63,23 @@ class EamisClient(EamisClientBasics):
             and e.get('id', '').startswith('electIndexNotice') # type: ignore
         for notice in filter(is_notice, container.children):
             title, tips, entry, *_ = filter(lambda e: e.name == 'div', notice.children) # type: ignore
-            yield title.find('h3').text, tips.find('div').text, entry.find('a')['href']
+            title_text = title.find('h3').text
+            tips_text = tips.find('div').text
+            entry_url = entry.find('a')['href']
+            entry_url_query = urlparse(self.url(entry_url)).query
+            profile_id = parse_qs(entry_url_query)['electionProfile.id'][0]
+            yield title_text, tips_text, profile_id 
 
-    def elect_profile_ids(self):
-        for title, tips, entry in self.elect_profiles():
-            url_query = urlparse(self.url(entry)).query
-            yield int(parse_qs(url_query)['electionProfile.id'][0])
-
-    def semester_id(self, profile_id: int):
+    def semester_id(self, profile_id: str):
         soup = BeautifulSoup(self.default_page(profile_id), features="lxml")
         qr_script_url: str = soup.find(id="qr_script")['src'] # type: ignore
         url_query = urlparse(qr_script_url).query
         return parse_qs(url_query)['semesterId'][0]
 
-    def lesson_data(self, profile_id: int):
+    def lesson_data(self, profile_id: str):
         resp = self.document(
             '/eams/stdElectCourse!data.action',
-            params={'profileId': str(profile_id)}
+            params={'profileId': profile_id}
         )
         try:
             dat = js_eval_data_reload(resp.text, 'lessonJSONs')
@@ -88,13 +88,13 @@ class EamisClient(EamisClientBasics):
         return cast(list[LessonData], dat)
 
     def all_lesson_data(self):
-        result: dict[int, list[LessonData]] = {}
-        for profile_id in self.elect_profile_ids():
+        result: dict[str, list[LessonData]] = {}
+        for title, tips, profile_id in self.elect_profiles():
             self.default_page(profile_id)
             result[profile_id] = self.lesson_data(profile_id)
         return result
 
-    def elect_course(self, profile_id: int, course_id: int, semester_id: str):
+    def elect_course(self, profile_id: str, course_id: int, semester_id: str):
         fetch_headers = {
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'Origin': f'https://{self.HOST}',
@@ -110,7 +110,7 @@ class EamisClient(EamisClientBasics):
             'POST', '/eams/stdElectCourse!batchOperator.action',
             headers=fetch_headers,
             data=form_data,
-            params={'profileId': str(profile_id)},
-            cookies={'semester.id': str(semester_id)}
+            params={'profileId': profile_id},
+            cookies={'semester.id': semester_id}
         )
         return resp.text
