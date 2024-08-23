@@ -6,7 +6,16 @@ from requests.cookies import RequestsCookieJar
 
 CHECK_INTERVAL = 0.1
 EAMIS_HOME = 'https://eamis.nankai.edu.cn/eams/home.action'
-EAMIS_LOGOUT = 'https://eamis.nankai.edu.cn/eams/logout.action'
+
+
+def cookies_to_jar(window, cookie_jar: RequestsCookieJar):
+    # 获取7天后的时间
+    later = datetime.now() + timedelta(days=7)
+    later_str = later.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
+    for ck in window.get_cookies():
+        for k, v in ck.items():
+            # 出于一些神奇的原因，我们需要重设这些cookie的过期时间
+            v['expires'] = later_str; cookie_jar[k] = v
 
 
 def is_login_over(window) -> bool:
@@ -15,10 +24,9 @@ def is_login_over(window) -> bool:
         and window.evaluate_js("document.querySelector('#mainTable')") is not None
 
 
-def webview_login(cookie_jar: RequestsCookieJar, clean: bool = False):
+def webview_login(cookie_jar: RequestsCookieJar):
     '''
     使用Webview辅助用户登录eamis。
-    目前的缺陷为大部分时候每次运行都需要重新登录。
     '''
     window_present = True
 
@@ -27,23 +35,16 @@ def webview_login(cookie_jar: RequestsCookieJar, clean: bool = False):
         window_present = False
 
     def wait_for_cookies(window):
-        if clean:
-            window.evaluate_js(f'window.location.replace("{EAMIS_LOGOUT}")')
-
         while True:
             if not window_present: return
             try:
                 if is_login_over(window): break
             except: return
             time.sleep(CHECK_INTERVAL)
+
+        window.evaluate_js('window.location.reload()')
         
-        # 获取7天后的时间
-        later = datetime.now() + timedelta(days=7)
-        later_str = later.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
-        for ck in window.get_cookies():
-            for k, v in ck.items():
-                # 出于一些神奇的原因，我们需要重设这些cookie的过期时间
-                v['expires'] = later_str; cookie_jar[k] = v
+        cookies_to_jar(window, cookie_jar)
         
         # 已完成，关闭窗口
         window.destroy()

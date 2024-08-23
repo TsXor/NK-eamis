@@ -19,13 +19,12 @@ class EamisClient(EamisClientBasics):
     @classmethod
     def from_webview(cls):
         obj = cls()
-        clean = False
         while True:
-            webview_login(obj.cookies, clean)
-            if not obj.cookies: raise ValueError('登录未成功')
+            webview_login(obj.cookies)
+            if not obj.cookies: raise ValueError('登录过程被打断')
+            # 注：此处访问任何一个子页面都可以验证是否成功登录
             resp = obj.std_elect_course()
             if not resp.is_redirect: break
-            clean = True
             obj.cookies.clear()
         return obj
 
