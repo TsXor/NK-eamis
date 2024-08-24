@@ -1,4 +1,4 @@
-from typing import TypedDict, Optional
+from typing import TypedDict, Optional, NotRequired
 
 '''
 没人问我，但你根本想不到写好Type Hint之后IDE提示多方便
@@ -12,6 +12,7 @@ class LessonArrangeInfo(TypedDict):
     weekStateDigest: str
     startTime: int
     endTime: int
+    # 这两个键总是存在，只是可能为null
     expLessonGroup: Optional[str]
     expLessonGroupNo: Optional[int]
     roomIds: str
@@ -48,3 +49,19 @@ class LessonData(TypedDict):
     remark: str
     arrangeInfo: list[LessonArrangeInfo]
     expLessonGroups: list[str]
+
+class ExpLessonGroup(TypedDict):
+    indexNo: int
+    stdCount: int
+    stdCountLimit: int
+    proStdCountLimit: int
+
+class StdCount(TypedDict):
+    sc: int
+    lc: int
+    upsc: int
+    uplc: int
+    plc: int
+    puplc: int
+    # 这个键可能不存在
+    expLessonGroups: NotRequired[dict[str, ExpLessonGroup]]

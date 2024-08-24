@@ -4,10 +4,15 @@ from bs4 import BeautifulSoup, Tag
 from .call_js import js_eval_data_reload
 from .webview_auth import webview_login
 from .client import EamisClientBasics
-from .dtypes import LessonData
+from .dtypes import LessonData, StdCount
 
 
-class EamisJsDataError(Exception): pass
+class EamisJsDataError(Exception):
+    js_code: str
+
+    def __init__(self, js_code: str, *args: object) -> None:
+        super().__init__(*args)
+        self.js_code = js_code
 
 
 class EamisClient(EamisClientBasics):
@@ -71,28 +76,42 @@ class EamisClient(EamisClientBasics):
             yield title_text, tips_text, profile_id 
 
     def semester_id(self, profile_id: str):
+        '''注：这个函数会使用default_page。'''
         soup = BeautifulSoup(self.default_page(profile_id), features="lxml")
         qr_script_url: str = soup.find(id="qr_script")['src'] # type: ignore
         url_query = urlparse(qr_script_url).query
         return parse_qs(url_query)['semesterId'][0]
+
+    @staticmethod
+    def load_js(code: str, varname: str):
+        try:
+            return js_eval_data_reload(code, varname)
+        except Exception as exc:
+            raise EamisJsDataError(code) from exc
+
+    def std_count(self, semester_id: str):
+        resp = self.document(
+            '/eams/stdElectCourse!queryStdCount.action',
+            params={'projectId': '1', 'semesterId': semester_id}
+        )
+        code = resp.text.replace('window.lessonId2Counts', 'var lessonId2Counts')
+        return cast(dict[str, dict[str, StdCount]], self.load_js(code, 'lessonId2Counts'))
 
     def lesson_data(self, profile_id: str):
         resp = self.document(
             '/eams/stdElectCourse!data.action',
             params={'profileId': profile_id}
         )
-        try:
-            dat = js_eval_data_reload(resp.text, 'lessonJSONs')
-        except Exception:
-            raise EamisJsDataError(resp.text)
-        return cast(list[LessonData], dat)
+        code = resp.text
+        return cast(list[LessonData], self.load_js(code, 'lessonJSONs'))
 
     def all_lesson_data(self):
-        result: dict[str, list[LessonData]] = {}
+        lesson_data: dict[str, list[LessonData]] = {}
         for title, tips, profile_id in self.elect_profiles():
-            self.default_page(profile_id)
-            result[profile_id] = self.lesson_data(profile_id)
-        return result
+            semester_id = self.semester_id(profile_id)
+            lesson_data[profile_id] = self.lesson_data(profile_id)
+        std_count = self.std_count(semester_id)
+        return lesson_data, std_count
 
     def elect_course(self, profile_id: str, course_id: int, semester_id: str):
         fetch_headers = {
