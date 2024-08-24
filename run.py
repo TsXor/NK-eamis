@@ -8,12 +8,11 @@ HERE = Path(__file__).parent
 
 
 # 这个是选课时间
-elect_date_info = (2024, 1, 12, 14, 0, 0) 
+elect_date_info = (2024, 8, 24, 11, 0, 0) 
 
 # 这个是你的选课计划
 plan = {
-    1606: ['2444'],
-    1610: ['0865'],
+    '1620': ['0428', '0378'],
 }
 
 
@@ -24,7 +23,7 @@ print('---- 课程数据加载成功')
 elect_date = datetime.datetime(*elect_date_info)
 print(f'---- 等待{elect_date}')
 spin_until_date(elect_date)
-print(f'---- 开始执行')
+print('---- 开始执行')
 catch_log = client.speed_catch(prepared_map)
 print('---- 执行完毕，记录日志')
 with open(HERE / 'log.json', 'wt', encoding='utf-8') as log_wfp:
