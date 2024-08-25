@@ -94,16 +94,14 @@ class EamisClient(EamisClientBasics):
             '/eams/stdElectCourse!queryStdCount.action',
             params={'projectId': '1', 'semesterId': semester_id}
         )
-        code = resp.text.replace('window.lessonId2Counts', 'var lessonId2Counts')
-        return cast(dict[str, dict[str, StdCount]], self.load_js(code, 'lessonId2Counts'))
+        return cast(dict[str, StdCount], self.load_js(resp.text, 'window.lessonId2Counts'))
 
     def lesson_data(self, profile_id: str):
         resp = self.document(
             '/eams/stdElectCourse!data.action',
             params={'profileId': profile_id}
         )
-        code = resp.text
-        return cast(list[LessonData], self.load_js(code, 'lessonJSONs'))
+        return cast(list[LessonData], self.load_js(resp.text, 'lessonJSONs'))
 
     def all_lesson_data(self):
         lesson_data: dict[str, list[LessonData]] = {}
