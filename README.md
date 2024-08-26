@@ -7,7 +7,7 @@ eamis十分奇葩地将含数据的JS脚本作为请求的回复。此项目使�
 
 ## 无头服务器兼容性
 ~~由于我尚未逆向飞连的登录API，此项目需要使用webview图形界面登录，暂不支持无头服务器。~~  
-飞连API已在`nku_sso`中支持，现在此项目支持无头服务器，且不再硬性依赖webview。
+飞连API已在[`nku_sso`](https://github.com/TsXor/nku_sso)中支持，现在此项目支持无头服务器，且不再硬性依赖webview。
 
 ## 测试数据
 test_data目录下包含一些来自现实的测试数据。  
