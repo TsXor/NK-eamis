@@ -24,7 +24,7 @@ def is_login_over(window) -> bool:
         and window.evaluate_js("document.querySelector('#mainTable')") is not None
 
 
-def webview_login(cookie_jar: RequestsCookieJar):
+def login(cookie_jar: RequestsCookieJar):
     '''
     使用Webview辅助用户登录eamis。
     '''

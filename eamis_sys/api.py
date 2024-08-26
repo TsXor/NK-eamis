@@ -1,11 +1,17 @@
+from . import fix_cert
+
 from typing import cast, Iterable
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup, Tag
+from nku_sso import BrowserMimic, NKUIAMAuth
 from .call_js import js_eval_data_reload
-from .webview_auth import webview_login
-from .client import EamisClientBasics
 from .dtypes import LessonData, StdCount
 
+try:
+    from .webview_auth import login as webview_login
+    WEBVIEW_SUPPORTED = True
+except ImportError:
+    WEBVIEW_SUPPORTED = False
 
 class EamisJsDataError(Exception):
     js_code: str
@@ -15,21 +21,36 @@ class EamisJsDataError(Exception):
         self.js_code = js_code
 
 
-class EamisClient(EamisClientBasics):
+class EamisClient(BrowserMimic):
     '''
     注意：连续调用某些API时需要在中间插入sleep，否则服务端只会回复“不要过快点击”。
     '''
 
     @classmethod
-    def from_webview(cls):
+    def domain(cls) -> str: return 'eamis.nankai.edu.cn'
+
+    def __init__(self):
+        super().__init__()
+        fix_cert.patch_session(self.sess)
+
+    if WEBVIEW_SUPPORTED:
+        @classmethod
+        def from_webview(cls):
+            obj = cls()
+            while True:
+                webview_login(obj.cookies)
+                if not obj.cookies: raise ValueError('登录过程被打断')
+                # 注：此处访问任何一个子页面都可以验证是否成功登录
+                if obj.activate(): break
+                obj.cookies.clear()
+            return obj
+
+    @classmethod
+    def from_account(cls, user: str, password: str):
         obj = cls()
-        while True:
-            webview_login(obj.cookies)
-            if not obj.cookies: raise ValueError('登录过程被打断')
-            # 注：此处访问任何一个子页面都可以验证是否成功登录
-            if obj.activate(): break
-            obj.cookies.clear()
-        return obj
+        obj.sess.auth = NKUIAMAuth(user, password)
+        obj.std_elect_course() # 触发认证
+        if not obj.activate(): raise RuntimeError('未知错误，激活未成功')
 
     def activate(self):
         '''
@@ -114,7 +135,6 @@ class EamisClient(EamisClientBasics):
     def elect_course(self, profile_id: str, course_id: int, semester_id: str):
         fetch_headers = {
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'Origin': f'https://{self.HOST}',
         }
         form_data = {
             'optype': 'true',

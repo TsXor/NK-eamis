@@ -3,3 +3,4 @@ pywebview
 lxml
 beautifulsoup4
 javascript
+nku_sso
