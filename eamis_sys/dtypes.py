@@ -1,4 +1,5 @@
-from typing import TypedDict, Optional, NotRequired
+from typing import TypedDict, Optional
+from typing_extensions import NotRequired
 
 '''
 没人问我，但你根本想不到写好Type Hint之后IDE提示多方便

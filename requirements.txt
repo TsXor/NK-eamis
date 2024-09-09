@@ -4,3 +4,4 @@ lxml
 beautifulsoup4
 javascript
 nku_sso
+typing_extensions

@@ -1,4 +1,5 @@
-from typing import Callable, ParamSpec, TypeVar
+from typing import Callable, TypeVar, Optional
+from typing_extensions import ParamSpec
 import time, datetime, warnings
 
 def spin_until(t: float, interval: float = 0.5):
@@ -11,7 +12,7 @@ def spin_until_date(d: datetime.datetime, interval: float = 0.5):
     spin_until(d.timestamp(), interval=interval)
 
 P = ParamSpec('P'); R = TypeVar('R')
-def supress_warning(wt: type[Warning] | None = None):
+def supress_warning(wt: Optional[type[Warning]] = None):
     def decorator(f: Callable[P, R]) -> Callable[P, R]:
         def result(*args: P.args, **kwargs: P.kwargs) -> R:
             with warnings.catch_warnings():
