@@ -9,17 +9,14 @@ except ImportError:
     REQUESTS_CERTS_PATCHED = False
 
 if REQUESTS_CERTS_PATCHED:
-    requests_loaded = 'requests' in sys.modules
-    import requests
-    if requests_loaded: importlib.reload(requests)
-    del requests_loaded
-
-if REQUESTS_CERTS_PATCHED:
-    def patch_session(sess: requests.Session): pass
+    if 'requests' in sys.modules:
+        importlib.reload(sys.modules['requests'])
 else:
-    def patch_session(sess: requests.Session):
-        sess.verify = False
-        sess.request = supress_warning(InsecureRequestWarning)(sess.request)
+    import requests
+    falsy = property(lambda self: False)
+    falsy = falsy.setter(lambda self, val: None)
+    requests.Session.verify = falsy # type: ignore
+    suppress_insecure = supress_warning(InsecureRequestWarning)
+    requests.Session.request = suppress_insecure(requests.Session.request)
 
-
-__all__ = ['REQUESTS_CERTS_PATCHED', 'patch_session']
+__all__ = ['REQUESTS_CERTS_PATCHED']
