@@ -31,7 +31,6 @@ class EamisClient(BrowserMimic):
 
     def __init__(self):
         super().__init__()
-        fix_cert.patch_session(self.sess)
 
     if WEBVIEW_SUPPORTED:
         @classmethod
@@ -51,6 +50,7 @@ class EamisClient(BrowserMimic):
         obj.sess.auth = NKUIAMAuth(user, password)
         obj.std_elect_course() # 触发认证
         if not obj.activate(): raise RuntimeError('未知错误，激活未成功')
+        return obj
 
     def activate(self):
         '''
